@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detective Case Files</title>
+  <style>
+    :root {
+      --bg: #0f1118;
+      --panel: rgba(20, 25, 35, 0.95);
+      --panel-soft: rgba(29, 34, 46, 0.9);
+      --accent: #58d5ff;
+      --accent-2: #ff9f4f;
+      --text: #e8edf4;
+      --muted: #94a0b8;
+      --danger: #ff5f6f;
+      --success: #6dd6a6;
+      --shadow: 0 24px 90px rgba(0,0,0,.35);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at top, rgba(88,213,255,.15), transparent 25%), radial-gradient(circle at bottom right, rgba(255,159,79,.12), transparent 20%), #0b0d14; color: var(--text); }
+    body { overflow-x: hidden; }
+    button { border: 0; cursor: pointer; font: inherit; }
+    .app-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .panel { background: var(--panel); border: 1px solid rgba(255,255,255,.06); border-radius: 28px; box-shadow: var(--shadow); backdrop-filter: blur(18px); }
+
+    .screen { width: min(1180px, 100%); max-width: 1180px; margin: auto; overflow: hidden; }
+    .screen.hidden { display: none; }
+    .hero { padding: 56px 44px 40px; text-align: center; }
+    .hero h1 { margin: 0; font-size: clamp(3rem, 4vw, 4.8rem); letter-spacing: -0.05em; line-height: 0.95; }
+    .hero p { margin: 22px auto 0; max-width: 760px; color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
+    .hero-actions { margin-top: 40px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn { background: linear-gradient(135deg, var(--accent), #52b4ff); color: #0d1323; padding: 16px 28px; border-radius: 999px; font-weight: 700; letter-spacing: .02em; transition: transform .2s ease, filter .2s ease; }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .btn-secondary { background: rgba(255,255,255,.08); color: var(--text); }
+
+    .game-header { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; padding: 24px 32px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .case-label { display: flex; flex-direction: column; gap: 6px; }
+    .case-label small { color: var(--accent); text-transform: uppercase; letter-spacing: .26em; font-size: .72rem; }
+    .case-label h2 { margin: 0; font-size: clamp(1.4rem, 2vw, 2rem); }
+    .status-cards { display: flex; gap: 14px; }
+    .status { padding: 16px 20px; border-radius: 18px; background: rgba(255,255,255,.05); min-width: 130px; }
+    .status strong { display: block; font-size: 1.3rem; }
+    .status span { color: var(--muted); font-size: .9rem; }
+    .main-grid { display: grid; grid-template-columns: 360px minmax(0, 1fr) 320px; gap: 24px; padding: 24px 32px 32px; }
+    .card { background: var(--panel-soft); border: 1px solid rgba(255,255,255,.06); border-radius: 26px; overflow: hidden; }
+    .card-header { padding: 22px 24px; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .card-header h3 { margin: 0; font-size: 1.05rem; }
+    .card-header span { color: var(--muted); font-size: .9rem; }
+    .card-body { padding: 22px 24px; display: grid; gap: 18px; }
+    .metric { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.04); }
+    .metric strong { font-size: 1.1rem; }
+    .metric em { color: var(--muted); font-size: .88rem; }
+
+    .tabs { display: flex; gap: 12px; padding: 0 24px 16px; }
+    .tab { flex: 1; text-align: center; padding: 14px 10px; border-radius: 16px; background: rgba(255,255,255,.03); color: var(--muted); transition: background .2s ease, color .2s ease; }
+    .tab.active { background: linear-gradient(135deg, rgba(88,213,255,.16), rgba(255,159,79,.16)); color: var(--text); }
+    .tab:hover { color: var(--text); }
+    .panel-content { display: none; animation: fadeIn .3s ease forwards; gap: 18px; }
+    .panel-content.active { display: grid; }
+
+    .list-item { border-radius: 18px; padding: 18px 20px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); transition: transform .18s ease, border-color .2s ease; cursor: pointer; }
+    .list-item:hover { transform: translateY(-1px); border-color: rgba(88,213,255,.24); }
+    .list-item.selected { border-color: rgba(88,213,255,.45); background: rgba(88,213,255,.08); }
+    .list-item h4 { margin: 0 0 8px; font-size: 1rem; }
+    .list-item p { margin: 0; color: var(--muted); font-size: .95rem; line-height: 1.6; }
+    .list-item small { color: #94a0b8; display: block; margin-top: 10px; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; font-size: .82rem; background: rgba(255,255,255,.08); color: var(--text); }
+    .badge.evidence { color: #7fe7a8; }
+    .badge.suspect { color: #ffc17c; }
+
+    .detail-panel { padding: 22px 24px; background: rgba(5,7,13,.75); border-radius: 26px; min-height: 280px; display: grid; gap: 18px; }
+    .detail-panel h3 { margin: 0; font-size: 1.2rem; }
+    .detail-panel p { margin: 0; color: var(--muted); line-height: 1.75; }
+    .detail-grid { display: grid; gap: 12px; }
+    .chip { display: inline-flex; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,.05); color: var(--text); font-size: .82rem; }
+    .hint-box { background: rgba(88,213,255,.08); border: 1px solid rgba(88,213,255,.18); color: #e8f8ff; padding: 18px; border-radius: 20px; }
+    .hint-box strong { display: block; margin-bottom: 8px; }
+
+    .footer-actions { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 32px; border-top: 1px solid rgba(255,255,255,.06); }
+    .action-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .info-block { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+    .info-block strong { color: var(--text); }
+
+    .modal, .screen-result { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,11,17,.88); backdrop-filter: blur(10px); opacity: 0; transform: scale(.96); transition: opacity .25s ease, transform .25s ease; pointer-events: none; z-index: 10; }
+    .modal.visible, .screen-result.visible { opacity: 1; transform: scale(1); pointer-events: all; }
+    .modal-card { width: min(540px, calc(100% - 40px)); background: rgba(18,22,34,.98); border: 1px solid rgba(255,255,255,.08); border-radius: 28px; overflow: hidden; box-shadow: var(--shadow); }
+    .modal-card header, .modal-card footer { padding: 24px 30px; }
+    .modal-card header h2 { margin: 0; font-size: 1.8rem; }
+    .modal-card .modal-body { padding: 0 30px 24px; color: var(--muted); line-height: 1.75; }
+    .modal-card footer { display: flex; justify-content: flex-end; gap: 14px; }
+    .modal-card footer .btn { width: 100%; }
+
+    .screen-result .result-card { width: min(680px, calc(100% - 40px)); background: rgba(18,22,34,.97); border-radius: 28px; padding: 34px; text-align: center; box-shadow: var(--shadow); }
+    .screen-result h2 { margin: 0 0 16px; font-size: 2.2rem; }
+    .screen-result p { margin: 0 0 24px; color: var(--muted); line-height: 1.7; }
+    .screen-result .result-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; margin-bottom: 24px; }
+    .result-metric { padding: 22px; border-radius: 22px; background: rgba(255,255,255,.04); text-align: center; }
+    .result-metric strong { display: block; font-size: 1.4rem; margin-bottom: 8px; }
+    .result-metric span { color: var(--muted); font-size: .92rem; }
+
+    .conclusion { display: grid; gap: 16px; text-align: left; }
+    .conclusion p { margin: 0; }
+    .conclusion ul { margin: 0; padding-left: 18px; color: var(--muted); }
+    .conclusion li { margin-bottom: 8px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 1080px) { .main-grid { grid-template-columns: 1fr; } .game-header { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) {
+      .hero { padding: 38px 24px 32px; }
+      .card-header, .card-body, .footer-actions, .game-header { padding: 18px; }
+      .screen-result .result-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <section id="introScreen" class="screen panel">
+      <div class="hero">
+        <small>מסע הבלשים</small>
+        <h1>Detective Case Files</h1>
+        <p>התחל חקירת הבלש שלך. סורק ראיות, חוקר חשודים, וגלם את ההחלטות שמובילות לפתירת התיק. רק מי משקר? המשימה משולבת מתח, לוגיקה ועיניים חדות.</p>
+        <div class="hero-actions">
+          <button class="btn" id="startButton">התחל חקירה</button>
+          <button class="btn btn-secondary" id="howButton">איך משחקים</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen hidden panel">
+      <div class="game-header">
+        <div class="case-label">
+          <small>תיק נוכחי</small>
+          <h2 id="caseTitle">המשחקוט</h2>
+        </div>
+
+        <div class="status-cards">
+          <div class="status">
+            <strong id="scoreValue">0</strong>
+            <span>ניקוד</span>
+          </div>
+          <div class="status">
+            <strong id="livesValue">3</strong>
+            <span>חיים</span>
+          </div>
+        </div>
+
+        <div class="status">
+          <strong id="hintCount">2</strong>
+          <span>רמזים זמינים</span>
+        </div>
+      </div>
+
+      <div class="main-grid">
+        <section class="card">
+          <div class="card-header">
+            <h3>תמצית התיק</h3>
+            <span id="caseDifficulty" class="badge">קל</span>
+          </div>
+          <div class="card-body">
+            <p id="caseIntro"></p>
+            <div class="metric">
+              <div>
+                <strong id="caseType">גניבה</strong>
+                <em>סוג האירוע</em>
+              </div>
+              <div class="chip" id="caseSuspectsCount">4 חשודים</div>
+            </div>
+            <div class="metric">
+              <div>
+                <strong id="caseSummaryLabel">מטרה מרכזית</strong>
+                <em id="caseSummaryText">להבין מי שיקר</em>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="tabs" id="tabButtons"></div>
+          <div class="panel-content active" data-panel="evidence" id="evidencePanel"></div>
+          <div class="panel-content" data-panel="suspects" id="suspectsPanel"></div>
+          <div class="panel-content" data-panel="timeline" id="timelinePanel"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <h3>לוח חקירה</h3>
+            <span>מה בדקת עכשיו</span>
+          </div>
+          <div class="detail-panel" id="detailPanel">
+            <h3>ברוך הבא
+</h3>
+            <p>בחר ראיה, חשוד או קטע זמן כדי לראות פרטים מלאים. עבוד לפי התחושה, תשתמש ברמזים במידת הצורך, ואל תמהר להאשים.</p>
+            <div class="hint-box">
+              <strong>טיפ מהמערכת</strong>
+              <p>לרוב השקרן משקר בצורה עקבית. חפש אי התאמות בין הצהרות לבין הראיות שקיימות בזירה.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="footer-actions">
+        <div class="action-row">
+          <button class="btn btn-secondary" id="hintButton">קבל רמז</button>
+          <button class="btn btn-secondary" id="reviewButton">סכם חקירה</button>
+        </div>
+        <button class="btn" id="accuseButton">האשם חשוד</button>
+      </div>
+    </section>
+
+    <div id="howModal" class="modal">
+      <div class="modal-card">
+        <header>
+          <h2>איך לשחק</h2>
+        </header>
+        <div class="modal-body">
+          <p>אתה בלש שמגיע לזירה עם תיק מורכב. סקור ראיות, קרא עדים, חקור חשודים והפעל חשיבה לוגית. כל תיק כולל רק חשוד אחד שמסר מידע לא נכון. לנצח עליך לאסוף מספיק אינפורמציה לפני שתאשים.</p>
+          <ul>
+            <li>בדוק את חלון הראיות ופתח כל כרטיס.</li>
+            <li>קרא כל עדות חשוד ושמור על אי התאמות.</li>
+            <li>השתמש ברמזים במידת הצורך, אך הם מורידים ניקוד.</li>
+            <li>היה מדויק: טעות מורידה חיים.</li>
+          </ul>
+        </div>
+        <footer>
+          <button class="btn" id="closeHow">המשך</button>
+        </footer>
+      </div>
+    </div>
+
+    <div id="accuseModal" class="modal">
+      <div class="modal-card">
+        <header>
+          <h2>האם אתה בטוח?</h2>
+        </header>
+        <div class="modal-body">
+          <p>בחר את החשוד שנראה לך הכי חשוד. ברגע תאשימו, תוקפא התיק ותקבלו תוצאה.</p>
+        </div>
+        <footer id="accuseOptions"></footer>
+      </div>
+    </div>
+
+    <section id="resultScreen" class="screen-result">
+      <div class="result-card">
+        <h2 id="resultTitle">תוצאה</h2>
+        <p id="resultDescription">תיאור התוצאה יופיע כאן.</p>
+        <div class="result-grid">
+          <div class="result-metric">
+            <strong id="resultScore">0</strong>
+            <span>ניקוד סופי</span>
+          </div>
+          <div class="result-metric">
+            <strong id="resultLives">3</strong>
+            <span>חיים שנותרו</span>
+          </div>
+          <div class="result-metric">
+            <strong id="resultCases">0/0</strong>
+            <span>תיקים פתורים</span>
+          </div>
+        </div>
+        <div class="conclusion" id="resultConclusion"></div>
+        <div class="hero-actions" style="justify-content: center; margin-top: 24px;">
+          <button class="btn" id="nextRoundButton">המשך</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const cases = [
+      {
+        id: 'case1',
+        title: 'גניבת השעון הישן',
+        difficulty: 'קל',
+        type: 'גניבה',
+        intro: 'בפאתי העיר נמצאה חנות עתיקות שייעדה תערוכה. שמונה חתיכות נדירות נותרו ללא הגנה, ואחד מהחשודים ניסה להסתיר מידע כדי להתחמק מעונש.',
+        summary: 'גלה מי שיקר לגבי תגידתם והאם הם באמת נראו בזירה בזמן ההתרחשות.',
+        suspects: [
+          { id: 's1', name: 'אורי החנותן', role: 'בעל החנות', statement: 'אני בטוח שפשוט נכנסו גנבים בחשכה. הייתי מאחורי הדלפק ושמעתי דפיקות בדלת לפני מהומות.', truthful: true, notes: 'החנותן תיאר כי נשמעו דפיקות לפני שהגניבה קרתה והיה ברקע בזמן האירוע.' },
+          { id: 's2', name: 'נועה הלקוחה', role: 'לקוחה קבועה', statement: 'אז הייתי בחנות כששמתי לב למישהו מסתורי עם מעיל כהה. הוא נעלם אחרי שדיברתי עם בעל החנות.', truthful: true, notes: 'היא נראתה ליד אזור התצוגה ולכן ראתה זר נכנס ומסתורי.' },
+          { id: 's3', name: 'גולן השומר', role: 'השומר הלילה', statement: 'שמעתי רעשים באמצע הלילה, אבל לא ראיתי אף אחד כי המצלמות היו מנותקות. רציתי לספר הכל מיד.', truthful: false, notes: 'המצלמות היו עובדות, אבל השומר טוען שהן מנותקות כדי להסוות את העובדה שהוא ראה משהו חשוב.' },
+          { id: 's4', name: 'רוני האורחת', role: 'מעצבת פנים', statement: 'הגעתי לייעוץ ועזבתי לפני שידעתי על הגניבה. אין לי מושג מי עשה את זה.', truthful: true, notes: 'היא נחשפה אליו אך היא לא שיקרה לגבי עזיבתה לפני האירוע.' }
+        ],
+        evidence: [
+          { id: 'e1', title: 'קלטת מצלמת אבטחה', detail: 'הקלטת מראה מעיל כהה נכנס לחנות בשעה 21:12. המצלמה התקלה נפתרה ב-21:15, אבל לפני כן היא תיעדה את התנועה.', type: 'מצלמות' },
+          { id: 'e2', title: 'דוח שומר', detail: 'השומר דיווח בתחילה על מצלמות מנותקות. המשטרה גילתה שהמצלמות חזרו לפעול בשעה 21:15, והמקליט הראה דמות אחד בלבד.', type: 'עדות' },
+          { id: 'e3', title: 'טביעת אצבע על המנעול', detail: 'טביעת אצבע לא רשומה של אורח שנמצא ליד הדלת הראשית, ואין זו טביעת השומר.', type: 'טביעות' },
+          { id: 'e4', title: 'פריט שנשבר', detail: 'חרסינה ישנה נשברה ליד החלון. אין סימני פריצה בשער, מה שמצביע על כניסה מתוך החנות עצמה.', type: 'פריטים' }
+        ],
+        timeline: [
+          { time: '20:55', note: 'אורי סוגר את החנות ומוודא שהדלת נעולה.' },
+          { time: '21:10', note: 'נועה מגיעה לביקור קבוע ומעלה רעיון לתצוגה חדשה.' },
+          { time: '21:12', note: 'מעיל כהה נכנס, המצלמה תופסת אותו מתקרב לדלפק.' },
+          { time: '21:20', note: 'השומר מדווח על רעשים וזקוק לעזרה.' }
+        ],
+        hints: [
+          'השומר טוען שהמצלמות לא היו פעילות, אבל המצלמות תיעדו את הסצנה לפני כן.',
+          'הטביעה על המנעול אינה שייכת לשומר, וזה משנה את הסיפור שלו.'
+        ],
+        summaryClues: [
+          'השומר אמר שהמצלמות היו מנותקות.',
+          'המצלמות תיעדו את האירוע באופן חלקי.',
+          'שקרן אחד מסתיר מידע מהותי על נוכחותו בזירה.'
+        ]
+      },
+      {
+        id: 'case2',
+        title: 'תקיפת המלון הקפוא',
+        difficulty: 'בינוני',
+        type: 'תקיפה',
+        intro: 'בחדר פרימיום במלון נמצא אדם חבול. ארבעה מבקרים נכחו באותו הלילה, וכל אחד טוען לדעת מה קרה. רק אחד מהם משקר בקשר לזמן שהותם בחדר.',
+        summary: 'בדוק את קווי הזמן והעדויות כדי לגלות מי ניסה להסתיר את התנועה שלו בזמן התקיפה.',
+        suspects: [
+          { id: 's1', name: 'דנה הסטודנטית', role: 'מבקרת תקופתית', statement: 'הייתי בחדר המים עד סביבות 23:00. שמעתי רעשים חזקים אחרי שעזבתי.', truthful: true, notes: 'היא הצליחה לאשר את היותה בחדר המים בזמן האירוע.' },
+          { id: 's2', name: 'ירון מנהל האירוח', role: 'המנהל הזמני', statement: 'הייתי מחוץ לחדר כל הלילה והסתובבתי בקומה כדי לבדוק ספקים.', truthful: false, notes: 'הוא טוען שהוא לא נכנס לחדר, אך ראיות מראות שהוא חזר עם חבילת סדקים לפני התקיפה.' },
+          { id: 's3', name: 'ליאת האמנית', role: 'מבקרת אמנות', statement: 'שמעתי צעקה באותו רגע, אך לא ראיתי שום דבר. הייתי בחדר עם בריסטול ויצירה.', truthful: true, notes: 'היא לא ראתה את המתקפה, אך תיארה את רעש הצעקה נכון.' },
+          { id: 's4', name: 'אילן המתנגד', role: 'אורח בשם', statement: 'נכנסתי לחדר רק כדי להביא משהו ושבתי מיד. בתום הפעולה קיבלתי התקפה מהחדר.', truthful: true, notes: 'הוא התוודה שהוא נכנס ויצא זמן קצר לפני שגילו את הפצוע.' }
+        ],
+        evidence: [
+          { id: 'e1', title: 'שטרות בחדר', detail: 'שטרות חדשות נמצאו על המדף שבה ראה ירון חומרי אריזה שעה לפני התקיפה.', type: 'פריטים' },
+          { id: 'e2', title: 'צילום קירור חדר', detail: 'חיישן תנועה בחדר המים רשם נוכחות של דנה עד 23:00 בדיוק.', type: 'אלקטרוניקה' },
+          { id: 'e3', title: 'שברי זכוכית', detail: 'הזכוכית שבשולחן נשברה מתוך החדר, דבר שמצביע על אינטנסיביות גבוהה בזמן התקיפה.', type: 'זירה' },
+          { id: 'e4', title: 'שיחה מוקלטת', detail: 'הקלטה של מאבטח אומרת שהוא ראה אדם עם חבילת סדקים מחוץ לחדר רגעים לפני התקיפה.', type: 'הקלטות' }
+        ],
+        timeline: [
+          { time: '22:40', note: 'אילן נכנס לחדר להביא חפץ ועוזב לפני התקיפה.' },
+          { time: '23:00', note: 'דנה מוודאת שהיא בחדר המים בזמן האירוע.' },
+          { time: '23:10', note: 'מאבטח מדווח על אדם עם חבילת סדקים בקומה שלפני החדר.' },
+          { time: '23:18', note: 'התקיפה מתרחשת, והנפגע נתגלה מוקדם בבוקר.' }
+        ],
+        hints: [
+          'ירון הניח שטרות במלון לאחר שיהיה ברור שהוא לא נוכח בפנים.',
+          'חבילת הסדקים וההקלטה מצביעות על תנועה שקוראת בדיוק זמני ההתקפה.'
+        ],
+        summaryClues: [
+          'ירון טען שלא נכנס לחדר כל הלילה.',
+          'מאבטח זיהה אותו עם חבילת סדקים קרוב למועד התקיפה.',
+          'החשוד ניסה להסתיר את זוהרו בזירה.'
+        ]
+      },
+      {
+        id: 'case3',
+        title: 'היעלמות בחוף המסתורין',
+        difficulty: 'קשה',
+        type: 'היעלמות',
+        intro: 'חקירת היעלמות של חוקר טבע מחוף ים מבודד. ארבעה עדים טוענים כי ראו את הניעם כבר אחרי שהאדם נעלם. רק במשפט אחד יש שקר שמסתיר את האמת על המיקום האחרון.',
+        summary: 'שימו לב לראיות טבעיות ולתיאורים של המיקום. מי משקר על המקום האחרון שבו ראה את הקורבן?',
+        suspects: [
+          { id: 's1', name: 'אורי הגיאולוג', role: 'חוקר טבע', statement: 'ראיתי אותו ניגש לדיונה, אבל בזמן אמת חזר במורד החוף. לא ראיתי שום כלי קיצון.', truthful: true, notes: 'הוא תיאר נכון את התנועה, אך לא איבד שביל ברור.' },
+          { id: 's2', name: 'ליה הסוקרת', role: 'מפתחת נתונים', statement: 'הייתי על הצוק והתקרבתי אל החוף. הוא נעלם מאחורי סלעים גבוהים. לא הנחתי אותו לייד המים.', truthful: false, notes: 'היא ניסתה להסיט את תשומת הלב אל הצוק במקום לספר על קירבתו לים.' },
+          { id: 's3', name: 'רותם השף', role: 'טבח אורח', statement: 'ראיתי אותו מחפש צמח נדיר, ובסיום דברנו על הדרך לחזור מערבה. לא נראה שהוא איתי כל הערב.', truthful: true, notes: 'הוא תיאר מפגש קצר ולא נח על המיקום האחרון.' },
+          { id: 's4', name: 'יואב הצלם', role: 'צלם טבע', statement: 'כבר לא ראיתי אותו כשהלכתי לעבר המים. ראיתי עקבות רגליים לכיוון הסלעים הגדולים.', truthful: true, notes: 'עקבות רגליים מצביעות על כך שהיה לכיוון הסלעים, לא דווקא למים.' }
+        ],
+        evidence: [
+          { id: 'e1', title: 'עקבות בחול', detail: 'שביל הרגלים מתחיל ישירות מהדיונה לכיוון הסלעים הגדולים, לא לעבר קו המים.', type: 'זירה' },
+          { id: 'e2', title: 'סימני גלישת חוף', detail: 'אין סימני גלישה של זרמי מים על קצה החול המיועד לשחייה, מה שמצביע על כך שלא נכנס למים.', type: 'טבע' },
+          { id: 'e3', title: 'שברי צמחים נדירים', detail: 'נמצאו עלים שנקרעו בסלעים הגבוהים ושייכים לצמח שנמצא רק בקצה השקיעה.', type: 'פריטים' },
+          { id: 'e4', title: 'צילום מהרחפן', detail: 'רחפן תיעד קבוצה קטנה על הצוק בשעה 16:28, אך לא ראתה אותו באזור החוף המרכזי.', type: 'הקלטות' }
+        ],
+        timeline: [
+          { time: '16:10', note: 'הקורבן מגיע לחוף ומתחיל למדוד צמחים.' },
+          { time: '16:18', note: 'ליה מדווחת על ראייתו ליד הסלעים הגבוהים.' },
+          { time: '16:25', note: 'יואב עובר על החוף ונראה לא למצוא אותו ליד המים.' },
+          { time: '16:40', note: 'החוקרים מתחילים לחפש עקבות בחול, ומגלים קרוב לסלעים.' }
+        ],
+        hints: [
+          'עקבות החול מובילות אל סלעים גבוהים, לא למים.',
+          'ליה מנסה להעביר את הפוקוס למיקום סמוך אך לא מדויק.'
+        ],
+        summaryClues: [
+          'ליה אמרה שהוא נעלם מאחורי סלעים גבוהים.',
+          'העקבות מצביעות על נסיעה לעבר סלעים ולא למים.',
+          'שקר קטן בשיחנון מבחין בין מיקום אמיתי לבין מיקום דמיוני.'
+        ]
+      }
+    ];
+
+    let currentCaseIndex = 0;
+    let score = 0;
+    let lives = 3;
+    let hints = 2;
+    let reviewedItems = new Set();
+    let currentPanel = 'evidence';
+
+    const introScreen = document.getElementById('introScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const resultScreen = document.getElementById('resultScreen');
+    const howModal = document.getElementById('howModal');
+    const accuseModal = document.getElementById('accuseModal');
+    const startButton = document.getElementById('startButton');
+    const howButton = document.getElementById('howButton');
+    const closeHow = document.getElementById('closeHow');
+    const caseTitle = document.getElementById('caseTitle');
+    const caseIntro = document.getElementById('caseIntro');
+    const caseType = document.getElementById('caseType');
+    const caseDifficulty = document.getElementById('caseDifficulty');
+    const caseSummaryText = document.getElementById('caseSummaryText');
+    const caseSuspectsCount = document.getElementById('caseSuspectsCount');
+    const scoreValue = document.getElementById('scoreValue');
+    const livesValue = document.getElementById('livesValue');
+    const hintCount = document.getElementById('hintCount');
+    const evidencePanel = document.getElementById('evidencePanel');
+    const suspectsPanel = document.getElementById('suspectsPanel');
+    const timelinePanel = document.getElementById('timelinePanel');
+    const detailPanel = document.getElementById('detailPanel');
+    const tabButtons = document.getElementById('tabButtons');
+    const hintButton = document.getElementById('hintButton');
+    const reviewButton = document.getElementById('reviewButton');
+    const accuseButton = document.getElementById('accuseButton');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultDescription = document.getElementById('resultDescription');
+    const resultScore = document.getElementById('resultScore');
+    const resultLives = document.getElementById('resultLives');
+    const resultCases = document.getElementById('resultCases');
+    const resultConclusion = document.getElementById('resultConclusion');
+    const nextRoundButton = document.getElementById('nextRoundButton');
+    const accuseOptions = document.getElementById('accuseOptions');
+
+    const tabs = [
+      { id: 'evidence', label: 'ראיות' },
+      { id: 'suspects', label: 'חשודים' },
+      { id: 'timeline', label: 'ציר זמן' }
+    ];
+
+    function startGame() {
+      currentCaseIndex = 0;
+      score = 0;
+      lives = 3;
+      hints = 2;
+      reviewedItems.clear();
+      showScreen(gameScreen);
+      renderCurrentCase();
+    }
+
+    function showScreen(screen) {
+      [introScreen, gameScreen, resultScreen].forEach(s => s.classList.add('hidden'));
+      screen.classList.remove('hidden');
+    }
+
+    function openModal(modal) {
+      modal.classList.add('visible');
+    }
+
+    function closeModal(modal) {
+      modal.classList.remove('visible');
+    }
+
+    function renderCurrentCase() {
+      const currentCase = cases[currentCaseIndex];
+      caseTitle.textContent = currentCase.title;
+      caseIntro.textContent = currentCase.intro;
+      caseType.textContent = currentCase.type;
+      caseDifficulty.textContent = currentCase.difficulty;
+      caseSummaryText.textContent = currentCase.summary;
+      caseSuspectsCount.textContent = `${currentCase.suspects.length} חשודים`;
+      scoreValue.textContent = score;
+      livesValue.textContent = lives;
+      hintCount.textContent = hints;
+      renderTabs();
+      renderPanel('evidence');
+      renderEvidence();
+      renderSuspects();
+      renderTimeline();
+      setDetailContent('בחר פריט כדי להתחיל בחקירה.', 'מסך החקירה מחכה לך. ברוך הבא לעבודה.');
+      updateAccuseOptions();
+    }
+
+    function renderTabs() {
+      tabButtons.innerHTML = '';
+      tabs.forEach(tab => {
+        const button = document.createElement('button');
+        button.className = `tab ${tab.id === currentPanel ? 'active' : ''}`;
+        button.textContent = tab.label;
+        button.addEventListener('click', () => renderPanel(tab.id));
+        tabButtons.appendChild(button);
+      });
+    }
+
+    function renderPanel(panelId) {
+      currentPanel = panelId;
+      ['evidence', 'suspects', 'timeline'].forEach(name => {
+        const panel = document.querySelector(`[data-panel='${name}']`);
+        panel.classList.toggle('active', name === panelId);
+      });
+      renderTabs();
+    }
+
+    function renderEvidence() {
+      const currentCase = cases[currentCaseIndex];
+      evidencePanel.innerHTML = '';
+      currentCase.evidence.forEach(item => {
+        const element = document.createElement('div');
+        element.className = 'list-item';
+        element.innerHTML = `<h4>${item.title}</h4><p>${item.detail.substring(0, 100)}…</p><small>סוג: ${item.type}</small>`;
+        element.addEventListener('click', () => {
+          reviewedItems.add(item.id);
+          setDetailContent(item.title, item.detail, 'ראיה');
+          element.classList.add('selected');
+        });
+        evidencePanel.appendChild(element);
+      });
+    }
+
+    function renderSuspects() {
+      const currentCase = cases[currentCaseIndex];
+      suspectsPanel.innerHTML = '';
+      currentCase.suspects.forEach((suspect, index) => {
+        const element = document.createElement('div');
+        element.className = 'list-item';
+        element.innerHTML = `<h4>${suspect.name}</h4><p>${suspect.role}</p><small>עדות קצרה על מנת להתחיל לחקור</small>`;
+        element.addEventListener('click', () => {
+          reviewedItems.add(suspect.id);
+          setDetailContent(`${suspect.name} - ${suspect.role}`, suspect.statement, 'חשוד', suspect.notes);
+          element.classList.add('selected');
+        });
+        suspectsPanel.appendChild(element);
+      });
+    }
+
+    function renderTimeline() {
+      const currentCase = cases[currentCaseIndex];
+      timelinePanel.innerHTML = '';
+      currentCase.timeline.forEach(entry => {
+        const element = document.createElement('div');
+        element.className = 'list-item';
+        element.innerHTML = `<h4>${entry.time}</h4><p>${entry.note}</p>`;
+        element.addEventListener('click', () => {
+          reviewedItems.add(entry.time);
+          setDetailContent(`ציר זמן ${entry.time}`, entry.note, 'לוח זמנים');
+          element.classList.add('selected');
+        });
+        timelinePanel.appendChild(element);
+      });
+    }
+
+    function setDetailContent(title, content, tag = '', extra = '') {
+      detailPanel.innerHTML = `
+        <div>
+          <span class="badge ${tag === 'ראיה' ? 'evidence' : tag === 'חשוד' ? 'suspect' : ''}">${tag || 'חקירה'}</span>
+          <h3>${title}</h3>
+          <p>${content}</p>
+          ${extra ? `<p><strong>פתרון לפי המשטרה:</strong> ${extra}</p>` : ''}
+        </div>
+      `;
+    }
+
+    function updateAccuseOptions() {
+      accuseOptions.innerHTML = '';
+      if (!cases[currentCaseIndex]) return;
+      cases[currentCaseIndex].suspects.forEach(suspect => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-secondary';
+        button.textContent = suspect.name;
+        button.addEventListener('click', () => accuseSuspect(suspect.id));
+        accuseOptions.appendChild(button);
+      });
+    }
+
+    function useHint() {
+      if (hints <= 0) return;
+      const currentCase = cases[currentCaseIndex];
+      const hint = currentCase.hints.shift();
+      if (!hint) return;
+      hints -= 1;
+      score = Math.max(0, score - 20);
+      scoreValue.textContent = score;
+      hintCount.textContent = hints;
+      setDetailContent('רמז', hint, 'רמז');
+    }
+
+    function accuseSuspect(suspectId) {
+      closeModal(accuseModal);
+      const currentCase = cases[currentCaseIndex];
+      const chosen = currentCase.suspects.find(s => s.id === suspectId);
+      if (!chosen) return;
+      const correct = currentCase.suspects.find(s => s.truthful === false);
+      const solved = chosen.id === correct.id;
+      if (solved) {
+        score += 120 + (reviewedItems.size * 4);
+      } else {
+        lives -= 1;
+        score = Math.max(0, score - 40);
+      }
+      const solvedCases = solved ? currentCaseIndex + 1 : currentCaseIndex;
+      showResult({ solved, chosen, correct, solvedCases });
+    }
+
+    function showResult({ solved, chosen, correct, solvedCases }) {
+      resultScreen.classList.add('visible');
+      resultTitle.textContent = solved ? 'פתרת את התיק!' : 'התחזית לא מדויקת.';
+      resultDescription.textContent = solved ?
+        `בחרת ב${chosen.name} והצלחת לחשוף את השקרן. המשך להתקדם לתיק הבא.` :
+        `בחרת ב${chosen.name}. התברר שהמציאות הייתה אחרת.`;
+      resultScore.textContent = score;
+      resultLives.textContent = lives;
+      resultCases.textContent = `${solvedCases}/${cases.length}`;
+      resultConclusion.innerHTML = `
+        <p><strong>הסבר המתח:</strong> ${correct.notes}</p>
+        <ul>
+          <li>הצהרת השקרן: ${correct.statement}</li>
+          <li>ראיה מכרעת: ${cases[currentCaseIndex].evidence[0].title}</li>
+          <li>המשימה הבאה: המשך לבדיקה והרהור על מקרים מורכבים יותר.</li>
+        </ul>
+      `;
+      if (solved) {
+        currentCaseIndex += 1;
+      }
+      if (lives <= 0) {
+        resultTitle.textContent = 'המשחק נגמר';
+        resultDescription.textContent = 'החיים שלך נגמרו. תוכל להתחיל מחדש עם תיקים חדשים.';
+        nextRoundButton.textContent = 'התחל מחדש';
+      } else if (!solved) {
+        nextRoundButton.textContent = 'נסה שוב בתיק זה';
+      } else if (currentCaseIndex >= cases.length) {
+        nextRoundButton.textContent = 'סיום המשחק';
+      } else {
+        nextRoundButton.textContent = 'תיק הבא';
+      }
+      resultScreen.classList.remove('hidden');
+    }
+
+    startButton.addEventListener('click', () => {
+      introScreen.classList.add('hidden');
+      gameScreen.classList.remove('hidden');
+      resultScreen.classList.remove('visible');
+      startGame();
+    });
+    howButton.addEventListener('click', () => openModal(howModal));
+    closeHow.addEventListener('click', () => closeModal(howModal));
+    hintButton.addEventListener('click', useHint);
+    reviewButton.addEventListener('click', () => {
+      const currentCase = cases[currentCaseIndex];
+      setDetailContent('סיכום תיק', currentCase.summaryClues.join(' • '), 'סקירה');
+    });
+    accuseButton.addEventListener('click', () => openModal(accuseModal));
+    nextRoundButton.addEventListener('click', () => {
+      resultScreen.classList.add('hidden');
+      resultScreen.classList.remove('visible');
+      if (lives <= 0 || currentCaseIndex >= cases.length) {
+        startGame();
+      } else {
+        reviewedItems.clear();
+        cases[currentCaseIndex].hints = cases[currentCaseIndex].hints || [];
+        renderCurrentCase();
+      }
+    });
+
+    window.addEventListener('click', event => {
+      if (event.target === howModal) closeModal(howModal);
+      if (event.target === accuseModal) closeModal(accuseModal);
+    });
+
+    renderTabs();
+    renderCurrentCase();
+  </script>
+</body>
+</html>
