@@ -32,6 +32,19 @@
     .hero h1 { margin: 0; font-size: clamp(3rem, 4vw, 4.8rem); letter-spacing: -0.05em; line-height: 0.95; }
     .hero p { margin: 22px auto 0; max-width: 760px; color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
     .hero-actions { margin-top: 40px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .setup-card { margin-top: 34px; display: grid; gap: 18px; text-align: left; }
+    .setup-group { padding: 22px 24px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.06); }
+    .setup-group h3 { margin: 0 0 12px; font-size: 1rem; color: var(--text); }
+    .option-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .option-btn, .case-card { border: 1px solid transparent; transition: transform .2s ease, border-color .2s ease, background .2s ease; }
+    .option-btn { padding: 12px 16px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); }
+    .option-btn.active { background: linear-gradient(135deg, rgba(88,213,255,.2), rgba(255,159,79,.2)); color: var(--text); border-color: rgba(88,213,255,.24); }
+    .case-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .case-card { width: 100%; text-align: left; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.04); color: var(--text); }
+    .case-card strong { display: block; margin-bottom: 6px; font-size: 1rem; }
+    .case-card small { display: block; color: var(--accent); margin-bottom: 8px; font-size: .8rem; }
+    .case-card p { margin: 0; color: var(--muted); font-size: .92rem; line-height: 1.55; }
+    .case-card.active { border-color: rgba(88,213,255,.35); background: rgba(88,213,255,.09); }
     .btn { background: linear-gradient(135deg, var(--accent), #52b4ff); color: #0d1323; padding: 16px 28px; border-radius: 999px; font-weight: 700; letter-spacing: .02em; transition: transform .2s ease, filter .2s ease; }
     .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
     .btn-secondary { background: rgba(255,255,255,.08); color: var(--text); }
@@ -122,6 +135,16 @@
         <small>מסע הבלשים</small>
         <h1>Detective Case Files</h1>
         <p>התחל חקירת הבלש שלך. סורק ראיות, חוקר חשודים, וגלם את ההחלטות שמובילות לפתירת התיק. רק מי משקר? המשימה משולבת מתח, לוגיקה ועיניים חדות.</p>
+        <div class="setup-card">
+          <div class="setup-group">
+            <h3>בחר רמה</h3>
+            <div class="option-row" id="difficultyOptions"></div>
+          </div>
+          <div class="setup-group">
+            <h3>בחר תיק</h3>
+            <div class="case-picker" id="casePicker"></div>
+          </div>
+        </div>
         <div class="hero-actions">
           <button class="btn" id="startButton">התחל חקירה</button>
           <button class="btn btn-secondary" id="howButton">איך משחקים</button>
@@ -374,15 +397,88 @@
           'העקבות מצביעות על נסיעה לעבר סלעים ולא למים.',
           'שקר קטן בשיחנון מבחין בין מיקום אמיתי לבין מיקום דמיוני.'
         ]
+      },
+      {
+        id: 'case4',
+        title: 'השחתת רכוש במוזיאון',
+        difficulty: 'בינוני',
+        type: 'השחתת רכוש',
+        intro: 'במוזיאון העירוני נגרם נזק ליצירה עתיקה שעות לפני פתיחת התערוכה. שמונת האורחים נשארו בזירה, אבל רק אחד מהם הסתיר את המידע הרלוונטי.',
+        summary: 'בדוק מי התקרב ליצירה, מי הכחיש שהם היו בקרבתה, ומי הסתיר את מסלול התנועה שלו.',
+        suspects: [
+          { id: 's1', name: 'מאיה המנהלת', role: 'מנהלת המוזיאון', statement: 'הייתי בחדר הכניסה עד 19:30. לא ראיתי אף אחד ליד היצירה בזמן הפגיעה.', truthful: true, notes: 'היא אכן נשארה בחדר הכניסה ותיארה את מיקומה נכון.' },
+          { id: 's2', name: 'איתן האמן', role: 'אמן מתקן', statement: 'נכנסתי לאולם לרגע קצר, אבל יצאתי מיד. לא נגעתי בשום דבר.', truthful: false, notes: 'הוא ניסה להסתיר שהוא שהה בחדר זמן ארוך יותר מהצדק.' },
+          { id: 's3', name: 'סמדר המדריכה', role: 'מדריכת סיורים', statement: 'ראיתי אדם עם קופסה שחורה ליד היצירה, אבל לא זיהיתי אותו בדיוק.', truthful: true, notes: 'היא תיארה את הקופסה בשעה שאכן הייתה ליד האולם.' },
+          { id: 's4', name: 'רועי המאבטח', role: 'מאבטח לילה', statement: 'נשארתי ליד הדלת הראשית. שמעתי רעש מהאולם רק אחרי שעת הסגירה.', truthful: true, notes: 'הוא התרכז באזור הדלת ונכנס לדיוק של התקרית.' }
+        ],
+        evidence: [
+          { id: 'e1', title: 'כתמי צבע', detail: 'נמצאו כתמי צבע על המסגרת, ככל הנראה מצבע שנשפך על ידי אדם שנגע ביצירה.', type: 'זירה' },
+          { id: 'e2', title: 'מפת גישה', detail: 'מפת האולם מראה שהאמן נכנס לאולם דרך מעבר צדדי וחצה מול היצירה.', type: 'תכנון' },
+          { id: 'e3', title: 'הקלטת שער', detail: 'הקלטה מראה שהאמן נשאר באולם חמש דקות ארוכות מהזמן שהוא טען.', type: 'מצלמות' },
+          { id: 'e4', title: 'קופסת צבע', detail: 'קופסת צבע חומה נמצאה ליד הפינה הצפונית של האולם.', type: 'פריטים' }
+        ],
+        timeline: [
+          { time: '18:40', note: 'מאיה סגורה את הכניסה הראשית ומוודאת שהאולם ריק.' },
+          { time: '18:48', note: 'סמדר מבצעת סיור של האחרון ושומעת רעש פתאומי.' },
+          { time: '18:55', note: 'האמן נצפה נכנס לאולם ומאוחר יותר יוצא עם קופסה.' },
+          { time: '19:10', note: 'נמצא נזק ליצירה, והמאבטח מסמן את המקרה.' }
+        ],
+        hints: [
+          'הקלטת השער מתאימה יותר למי שהחזיק קופסה, לא למי שטען שהיה רק דקות קצרות.',
+          'האמת היא שמישהו שיקר על משך השהות שלו ליד היצירה.'
+        ],
+        summaryClues: [
+          'האמן טען שהוא היה שם רק לרגע.',
+          'הקלטת שער מציגה שהותו ארוכה יותר.',
+          'שקרן אחד מנסה להסביר את נוכחותו בקצרה מדי.'
+        ]
+      },
+      {
+        id: 'case5',
+        title: 'היעלמות במעבדת מחקר',
+        difficulty: 'קשה',
+        type: 'היעלמות',
+        intro: 'במעבדת מחקר שקטה נעלם מהנדס אלקטרוניקה במהלך בדיקת מערכת. חמישה אנשים הכחישו קשר, אבל רק אחד מהם שיקר על הזמן האחרון שבו ראה אותו.',
+        summary: 'עקוב אחר ציר הזמן, בדוק מי היה ליד הדלת, ומי התפנה מהאזור בזמן הלא נכון.',
+        suspects: [
+          { id: 's1', name: 'נעם המדען', role: 'ראש המעבדה', statement: 'ראיתי אותו אחרון ליד שולחן הבדיקה, ואז יצאתי לחדר השירותים. לא זוכר אם שמעתי משהו.', truthful: true, notes: 'הוא אכן היה באזור מסוים, אבל לא שיקר על מה שראה.' },
+          { id: 's2', name: 'ברק הטכנאי', role: 'טכנאי אלקטרוניקה', statement: 'הייתי ליד הדלת כל הזמן. שמעתי את המהדק, אבל לא נכנסתי למעבדה.', truthful: false, notes: 'ההקלטה מראה שהוא פתח את הדלת והיה בתוך החדר בזמן ההיעלמות.' },
+          { id: 's3', name: 'מיה המנהלת', role: 'מנהלת פרויקטים', statement: 'ראיתי את המהנדס נעלם דרך חלון הצדדי של החדר. לא הספקתי לראות מי היה שם.', truthful: true, notes: 'היא תיארה נכון את מיקום הפתח והקשר לאזור צדדי.' },
+          { id: 's4', name: 'יונתן האחראי', role: 'אחראי אבטחה', statement: 'התחלתי לפקח על הדלת דקות אחרי שהאדם נעלם. לא היה לי זמן לראות שום דבר נוסף.', truthful: true, notes: 'הוא מצא את עצמו ברגע מאוחר מדי, ולכן לא היה לו מידע על המהלך הרלוונטי.' }
+        ],
+        evidence: [
+          { id: 'e1', title: 'הקלטת אזעקה', detail: 'האזעקה הדליקה את הדלת בשעה 20:14, והקלטה מראה את ברק נכנס פנימה.', type: 'מצלמות' },
+          { id: 'e2', title: 'מכשיר מעקב', detail: 'התקן המעקב של המהנדס נעלם עם הדלת האחרונה, מה שמצביע על ניתוק מיידי של המערכת.', type: 'אלקטרוניקה' },
+          { id: 'e3', title: 'מסקנות על שולחן', detail: 'על השולחן נמצאו סימנים לשימוש קצר ברגע האחרון, מה שמרמז על חפיפה עם המהנדס.', type: 'זירה' },
+          { id: 'e4', title: 'הודעת טלפון', detail: 'הודעה שנשלחה מן המעבדה בשעה 20:12 נראית כמי שנכתבה בזמן שהטכנאי היה בתוך החדר.', type: 'טלפון' }
+        ],
+        timeline: [
+          { time: '20:05', note: 'המהנדס נכנס לבדיקת מערכת ואומר שהוא לבד.' },
+          { time: '20:10', note: 'ברק נצפה ליד הדלת ונכנס לחדר עם מפתח.' },
+          { time: '20:12', note: 'ההודעה נשלחת, והמערכת קורסת בזמן קצר.' },
+          { time: '20:18', note: 'החדר נבדק מחדש, והאדם כבר לא נוכח.' }
+        ],
+        hints: [
+          'הקלטת אזעקה מכסה את התיקון של ברק, והוא לא היה רק ליד הדלת.',
+          'מישהו שיקר על כניסתו המיידית למעבדה.'
+        ],
+        summaryClues: [
+          'ברק אמר שהוא נשאר ליד הדלת.',
+          'הקלטה מראה שהוא נכנס פנימה.',
+          'הדלת וההודעה מייצרות מסלול חד-משמעי לאמת.'
+        ]
       }
     ];
 
-    let currentCaseIndex = 0;
+    let currentCaseId = '';
+    let activeCases = [];
     let score = 0;
     let lives = 3;
-    let hints = 2;
+    let hints = 3;
     let reviewedItems = new Set();
     let currentPanel = 'evidence';
+    let selectedDifficulty = 'כל';
+    let selectedCaseId = '';
 
     const introScreen = document.getElementById('introScreen');
     const gameScreen = document.getElementById('gameScreen');
@@ -417,6 +513,8 @@
     const resultConclusion = document.getElementById('resultConclusion');
     const nextRoundButton = document.getElementById('nextRoundButton');
     const accuseOptions = document.getElementById('accuseOptions');
+    const difficultyOptions = document.getElementById('difficultyOptions');
+    const casePicker = document.getElementById('casePicker');
 
     const tabs = [
       { id: 'evidence', label: 'ראיות' },
@@ -424,12 +522,81 @@
       { id: 'timeline', label: 'ציר זמן' }
     ];
 
+    function buildCaseState(caseData) {
+      return {
+        ...caseData,
+        suspects: caseData.suspects.map(s => ({ ...s })),
+        evidence: caseData.evidence.map(e => ({ ...e })),
+        timeline: caseData.timeline.map(t => ({ ...t })),
+        hints: [...caseData.hints]
+      };
+    }
+
+    function getAvailableCases() {
+      if (selectedDifficulty === 'כל') {
+        return cases.map(buildCaseState);
+      }
+      return cases.filter(item => item.difficulty === selectedDifficulty).map(buildCaseState);
+    }
+
+    function getCurrentCase() {
+      return activeCases.find(item => item.id === currentCaseId) || activeCases[0] || null;
+    }
+
+    function renderDifficultyOptions() {
+      difficultyOptions.innerHTML = '';
+      ['כל', 'קל', 'בינוני', 'קשה'].forEach(level => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `option-btn ${selectedDifficulty === level ? 'active' : ''}`;
+        button.textContent = level === 'כל' ? 'הכל' : level;
+        button.addEventListener('click', () => {
+          selectedDifficulty = level;
+          selectedCaseId = '';
+          renderDifficultyOptions();
+          renderCasePicker();
+        });
+        difficultyOptions.appendChild(button);
+      });
+    }
+
+    function renderCasePicker() {
+      const list = getAvailableCases();
+      casePicker.innerHTML = '';
+      if (!list.length) {
+        casePicker.innerHTML = '<div class="case-card"><strong>אין תיקים זמינים</strong><p>בחר רמה אחרת כדי לראות תיקים נוספים.</p></div>';
+        return;
+      }
+
+      if (!selectedCaseId || !list.some(item => item.id === selectedCaseId)) {
+        selectedCaseId = list[0].id;
+      }
+
+      list.forEach(item => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `case-card ${selectedCaseId === item.id ? 'active' : ''}`;
+        card.innerHTML = `<strong>${item.title}</strong><small>${item.type} • ${item.difficulty}</small><p>${item.summary}</p>`;
+        card.addEventListener('click', () => {
+          selectedCaseId = item.id;
+          renderCasePicker();
+        });
+        casePicker.appendChild(card);
+      });
+    }
+
     function startGame() {
-      currentCaseIndex = 0;
+      activeCases = getAvailableCases();
+      if (!activeCases.length) {
+        activeCases = cases.map(buildCaseState);
+      }
+      const initialCase = activeCases.find(item => item.id === selectedCaseId) || activeCases[0];
+      currentCaseId = initialCase.id;
       score = 0;
       lives = 3;
-      hints = 2;
+      hints = selectedDifficulty === 'קשה' ? 1 : selectedDifficulty === 'בינוני' ? 2 : 3;
       reviewedItems.clear();
+      currentPanel = 'evidence';
       showScreen(gameScreen);
       renderCurrentCase();
     }
@@ -448,7 +615,8 @@
     }
 
     function renderCurrentCase() {
-      const currentCase = cases[currentCaseIndex];
+      const currentCase = getCurrentCase();
+      if (!currentCase) return;
       caseTitle.textContent = currentCase.title;
       caseIntro.textContent = currentCase.intro;
       caseType.textContent = currentCase.type;
@@ -488,7 +656,7 @@
     }
 
     function renderEvidence() {
-      const currentCase = cases[currentCaseIndex];
+      const currentCase = getCurrentCase();
       evidencePanel.innerHTML = '';
       currentCase.evidence.forEach(item => {
         const element = document.createElement('div');
@@ -504,9 +672,9 @@
     }
 
     function renderSuspects() {
-      const currentCase = cases[currentCaseIndex];
+      const currentCase = getCurrentCase();
       suspectsPanel.innerHTML = '';
-      currentCase.suspects.forEach((suspect, index) => {
+      currentCase.suspects.forEach(suspect => {
         const element = document.createElement('div');
         element.className = 'list-item';
         element.innerHTML = `<h4>${suspect.name}</h4><p>${suspect.role}</p><small>עדות קצרה על מנת להתחיל לחקור</small>`;
@@ -520,7 +688,7 @@
     }
 
     function renderTimeline() {
-      const currentCase = cases[currentCaseIndex];
+      const currentCase = getCurrentCase();
       timelinePanel.innerHTML = '';
       currentCase.timeline.forEach(entry => {
         const element = document.createElement('div');
@@ -548,8 +716,9 @@
 
     function updateAccuseOptions() {
       accuseOptions.innerHTML = '';
-      if (!cases[currentCaseIndex]) return;
-      cases[currentCaseIndex].suspects.forEach(suspect => {
+      const currentCase = getCurrentCase();
+      if (!currentCase) return;
+      currentCase.suspects.forEach(suspect => {
         const button = document.createElement('button');
         button.className = 'btn btn-secondary';
         button.textContent = suspect.name;
@@ -560,7 +729,8 @@
 
     function useHint() {
       if (hints <= 0) return;
-      const currentCase = cases[currentCaseIndex];
+      const currentCase = getCurrentCase();
+      if (!currentCase) return;
       const hint = currentCase.hints.shift();
       if (!hint) return;
       hints -= 1;
@@ -572,7 +742,7 @@
 
     function accuseSuspect(suspectId) {
       closeModal(accuseModal);
-      const currentCase = cases[currentCaseIndex];
+      const currentCase = getCurrentCase();
       const chosen = currentCase.suspects.find(s => s.id === suspectId);
       if (!chosen) return;
       const correct = currentCase.suspects.find(s => s.truthful === false);
@@ -583,45 +753,45 @@
         lives -= 1;
         score = Math.max(0, score - 40);
       }
-      const solvedCases = solved ? currentCaseIndex + 1 : currentCaseIndex;
-      showResult({ solved, chosen, correct, solvedCases });
+      showResult({ solved, chosen, correct });
     }
 
-    function showResult({ solved, chosen, correct, solvedCases }) {
+    function showResult({ solved, chosen, correct }) {
       resultScreen.classList.add('visible');
       resultTitle.textContent = solved ? 'פתרת את התיק!' : 'התחזית לא מדויקת.';
       resultDescription.textContent = solved ?
-        `בחרת ב${chosen.name} והצלחת לחשוף את השקרן. המשך להתקדם לתיק הבא.` :
+        `בחרת ב${chosen.name} והצלחת לחשוף את השקרן.` :
         `בחרת ב${chosen.name}. התברר שהמציאות הייתה אחרת.`;
       resultScore.textContent = score;
       resultLives.textContent = lives;
-      resultCases.textContent = `${solvedCases}/${cases.length}`;
+      resultCases.textContent = `1/1`;
       resultConclusion.innerHTML = `
         <p><strong>הסבר המתח:</strong> ${correct.notes}</p>
         <ul>
           <li>הצהרת השקרן: ${correct.statement}</li>
-          <li>ראיה מכרעת: ${cases[currentCaseIndex].evidence[0].title}</li>
-          <li>המשימה הבאה: המשך לבדיקה והרהור על מקרים מורכבים יותר.</li>
+          <li>ראיה מכרעת: ${getCurrentCase().evidence[0].title}</li>
+          <li>המשימה הבאה: חזור לבחירת התיקים או נסה עוד תיק.</li>
         </ul>
       `;
-      if (solved) {
-        currentCaseIndex += 1;
-      }
       if (lives <= 0) {
         resultTitle.textContent = 'המשחק נגמר';
-        resultDescription.textContent = 'החיים שלך נגמרו. תוכל להתחיל מחדש עם תיקים חדשים.';
-        nextRoundButton.textContent = 'התחל מחדש';
+        resultDescription.textContent = 'החיים שלך נגמרו. בחר רמה ותיק חדשים כדי לנסות שוב.';
+        nextRoundButton.textContent = 'בחירת תיקים';
       } else if (!solved) {
-        nextRoundButton.textContent = 'נסה שוב בתיק זה';
-      } else if (currentCaseIndex >= cases.length) {
-        nextRoundButton.textContent = 'סיום המשחק';
+        nextRoundButton.textContent = 'נסה שוב';
       } else {
-        nextRoundButton.textContent = 'תיק הבא';
+        nextRoundButton.textContent = 'בחירת תיקים';
       }
       resultScreen.classList.remove('hidden');
     }
 
     startButton.addEventListener('click', () => {
+      if (!selectedCaseId) {
+        const firstCase = getAvailableCases()[0];
+        if (firstCase) {
+          selectedCaseId = firstCase.id;
+        }
+      }
       introScreen.classList.add('hidden');
       gameScreen.classList.remove('hidden');
       resultScreen.classList.remove('visible');
@@ -631,20 +801,16 @@
     closeHow.addEventListener('click', () => closeModal(howModal));
     hintButton.addEventListener('click', useHint);
     reviewButton.addEventListener('click', () => {
-      const currentCase = cases[currentCaseIndex];
+      const currentCase = getCurrentCase();
       setDetailContent('סיכום תיק', currentCase.summaryClues.join(' • '), 'סקירה');
     });
     accuseButton.addEventListener('click', () => openModal(accuseModal));
     nextRoundButton.addEventListener('click', () => {
       resultScreen.classList.add('hidden');
       resultScreen.classList.remove('visible');
-      if (lives <= 0 || currentCaseIndex >= cases.length) {
-        startGame();
-      } else {
-        reviewedItems.clear();
-        cases[currentCaseIndex].hints = cases[currentCaseIndex].hints || [];
-        renderCurrentCase();
-      }
+      showScreen(introScreen);
+      renderDifficultyOptions();
+      renderCasePicker();
     });
 
     window.addEventListener('click', event => {
@@ -652,6 +818,8 @@
       if (event.target === accuseModal) closeModal(accuseModal);
     });
 
+    renderDifficultyOptions();
+    renderCasePicker();
     renderTabs();
     renderCurrentCase();
   </script>
