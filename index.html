@@ -33,11 +33,12 @@
     .hero p { margin: 22px auto 0; max-width: 760px; color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
     .hero-actions { margin-top: 40px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
     .setup-card { margin-top: 34px; display: grid; gap: 18px; text-align: left; }
-    .setup-group { padding: 22px 24px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.06); }
-    .setup-group h3 { margin: 0 0 12px; font-size: 1rem; color: var(--text); }
+    .setup-group { padding: 24px 26px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.06); }
+    .setup-group .option-row, .setup-group .case-picker { width: 100%; }
+    .setup-group h3 { margin: 0 0 14px; font-size: 1.02rem; color: var(--text); line-height: 1.4; }
     .option-row { display: flex; flex-wrap: wrap; gap: 10px; }
     .option-btn, .case-card { border: 1px solid transparent; transition: transform .2s ease, border-color .2s ease, background .2s ease; }
-    .option-btn { padding: 12px 16px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); }
+    .option-btn { padding: 12px 18px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); min-height: 46px; }
     .option-btn.active { background: linear-gradient(135deg, rgba(88,213,255,.2), rgba(255,159,79,.2)); color: var(--text); border-color: rgba(88,213,255,.24); }
     .case-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .case-card { width: 100%; text-align: left; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.04); color: var(--text); }
@@ -97,12 +98,12 @@
     .info-block { display: flex; align-items: center; gap: 12px; color: var(--muted); }
     .info-block strong { color: var(--text); }
 
-    .modal, .screen-result { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,11,17,.88); backdrop-filter: blur(10px); opacity: 0; transform: scale(.96); transition: opacity .25s ease, transform .25s ease; pointer-events: none; z-index: 10; }
+    .modal, .screen-result { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,11,17,.88); backdrop-filter: blur(10px); opacity: 0; transform: scale(.96); transition: opacity .25s ease, transform .25s ease; pointer-events: none; z-index: 10; padding: 20px; overflow-y: auto; }
     .modal.visible, .screen-result.visible { opacity: 1; transform: scale(1); pointer-events: all; }
-    .modal-card { width: min(540px, calc(100% - 40px)); background: rgba(18,22,34,.98); border: 1px solid rgba(255,255,255,.08); border-radius: 28px; overflow: hidden; box-shadow: var(--shadow); }
-    .modal-card header, .modal-card footer { padding: 24px 30px; }
+    .modal-card { width: min(860px, calc(100% - 40px)); max-height: min(90vh, 900px); background: rgba(18,22,34,.98); border: 1px solid rgba(255,255,255,.08); border-radius: 28px; overflow-y: auto; box-shadow: var(--shadow); }
+    .modal-card header, .modal-card footer { padding: 22px 30px; }
     .modal-card header h2 { margin: 0; font-size: 1.8rem; }
-    .modal-card .modal-body { padding: 0 30px 24px; color: var(--muted); line-height: 1.75; }
+    .modal-card .modal-body { padding: 0 30px 22px; color: var(--muted); line-height: 1.75; }
     .modal-card footer { display: flex; justify-content: flex-end; gap: 14px; }
     .modal-card footer .btn { width: 100%; }
 
@@ -125,6 +126,8 @@
       .hero { padding: 38px 24px 32px; }
       .card-header, .card-body, .footer-actions, .game-header { padding: 18px; }
       .screen-result .result-grid { grid-template-columns: 1fr; }
+      .case-picker { grid-template-columns: 1fr; }
+      .modal-card { width: min(92vw, 100%); }
     }
   </style>
 </head>
@@ -135,16 +138,6 @@
         <small>מסע הבלשים</small>
         <h1>Detective Case Files</h1>
         <p>התחל חקירת הבלש שלך. סורק ראיות, חוקר חשודים, וגלם את ההחלטות שמובילות לפתירת התיק. רק מי משקר? המשימה משולבת מתח, לוגיקה ועיניים חדות.</p>
-        <div class="setup-card">
-          <div class="setup-group">
-            <h3>בחר רמה</h3>
-            <div class="option-row" id="difficultyOptions"></div>
-          </div>
-          <div class="setup-group">
-            <h3>בחר תיק</h3>
-            <div class="case-picker" id="casePicker"></div>
-          </div>
-        </div>
         <div class="hero-actions">
           <button class="btn" id="startButton">התחל חקירה</button>
           <button class="btn btn-secondary" id="howButton">איך משחקים</button>
@@ -232,6 +225,29 @@
         <button class="btn" id="accuseButton">האשם חשוד</button>
       </div>
     </section>
+
+    <div id="setupModal" class="modal">
+      <div class="modal-card">
+        <header>
+          <h2>בחר רמה ותיק</h2>
+        </header>
+        <div class="modal-body">
+          <div class="setup-card" style="margin-top: 0;">
+            <div class="setup-group">
+              <h3>בחר רמה</h3>
+              <div class="option-row" id="difficultyOptions"></div>
+            </div>
+            <div class="setup-group">
+              <h3>בחר תיק</h3>
+              <div class="case-picker" id="casePicker"></div>
+            </div>
+          </div>
+        </div>
+        <footer>
+          <button class="btn" id="launchGameButton">התחל חקירה</button>
+        </footer>
+      </div>
+    </div>
 
     <div id="howModal" class="modal">
       <div class="modal-card">
@@ -483,11 +499,13 @@
     const introScreen = document.getElementById('introScreen');
     const gameScreen = document.getElementById('gameScreen');
     const resultScreen = document.getElementById('resultScreen');
+    const setupModal = document.getElementById('setupModal');
     const howModal = document.getElementById('howModal');
     const accuseModal = document.getElementById('accuseModal');
     const startButton = document.getElementById('startButton');
     const howButton = document.getElementById('howButton');
     const closeHow = document.getElementById('closeHow');
+    const launchGameButton = document.getElementById('launchGameButton');
     const caseTitle = document.getElementById('caseTitle');
     const caseIntro = document.getElementById('caseIntro');
     const caseType = document.getElementById('caseType');
@@ -786,12 +804,18 @@
     }
 
     startButton.addEventListener('click', () => {
+      renderDifficultyOptions();
+      renderCasePicker();
+      openModal(setupModal);
+    });
+    launchGameButton.addEventListener('click', () => {
       if (!selectedCaseId) {
         const firstCase = getAvailableCases()[0];
         if (firstCase) {
           selectedCaseId = firstCase.id;
         }
       }
+      closeModal(setupModal);
       introScreen.classList.add('hidden');
       gameScreen.classList.remove('hidden');
       resultScreen.classList.remove('visible');
@@ -814,6 +838,7 @@
     });
 
     window.addEventListener('click', event => {
+      if (event.target === setupModal) closeModal(setupModal);
       if (event.target === howModal) closeModal(howModal);
       if (event.target === accuseModal) closeModal(accuseModal);
     });
