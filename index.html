@@ -59,6 +59,27 @@
     .status { padding: 16px 20px; border-radius: 18px; background: rgba(255,255,255,.05); min-width: 130px; }
     .status strong { display: block; font-size: 1.3rem; }
     .status span { color: var(--muted); font-size: .9rem; }
+    .status.timer-status { border: 1px solid rgba(255,159,79,.38); background: rgba(255,159,79,.08); }
+    .timer-toast {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(18,22,34,.96);
+      border: 1px solid rgba(88,213,255,.35);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      padding: 18px 26px;
+      border-radius: 18px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .25s ease, visibility .25s ease;
+      z-index: 50;
+      min-width: min(300px, 80vw);
+      text-align: center;
+      font-weight: 700;
+    }
+    .timer-toast.visible { opacity: 1; visibility: visible; }
     .main-grid { display: grid; grid-template-columns: 360px minmax(0, 1fr) 320px; gap: 24px; padding: 24px 32px 32px; }
     .card { background: var(--panel-soft); border: 1px solid rgba(255,255,255,.06); border-radius: 26px; overflow: hidden; }
     .card-header { padding: 22px 24px; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -102,6 +123,12 @@
     .modal, .screen-result { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,11,17,.88); backdrop-filter: blur(10px); opacity: 0; transform: scale(.96); transition: opacity .25s ease, transform .25s ease; pointer-events: none; z-index: 10; padding: 20px; overflow-y: auto; }
     .modal.visible, .screen-result.visible { opacity: 1; transform: scale(1); pointer-events: all; }
     .modal-card { width: min(860px, calc(100% - 40px)); max-height: min(90vh, 900px); background: rgba(18,22,34,.98); border: 1px solid rgba(255,255,255,.08); border-radius: 28px; overflow-y: auto; box-shadow: var(--shadow); }
+    .interrogate-layout { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 18px; }
+    .question-list { display: grid; gap: 10px; }
+    .question-btn { width: 100%; text-align: right; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); color: var(--text); border-radius: 16px; padding: 12px 14px; }
+    .question-btn:hover { border-color: rgba(88,213,255,.35); }
+    .question-answer { background: rgba(88,213,255,.08); border: 1px solid rgba(88,213,255,.22); color: var(--text); border-radius: 18px; padding: 18px; min-height: 120px; }
+    .question-answer strong { display: block; margin-bottom: 8px; }
     .modal-card header, .modal-card footer { padding: 22px 30px; }
     .modal-card header h2 { margin: 0; font-size: 1.8rem; }
     .modal-card .modal-body { padding: 0 30px 22px; color: var(--muted); line-height: 1.75; }
@@ -179,6 +206,10 @@
             <strong id="livesValue">3</strong>
             <span>חיים</span>
           </div>
+          <div class="status timer-status">
+            <strong id="timerValue">02:00</strong>
+            <span>זמן נותר</span>
+          </div>
         </div>
 
         <div class="status">
@@ -239,6 +270,7 @@
         <div class="action-row">
           <button class="btn btn-secondary" id="hintButton">קבל רמז</button>
           <button class="btn btn-secondary" id="reviewButton">סכם חקירה</button>
+          <button class="btn btn-secondary" id="interrogateButton">חדר חקירות</button>
         </div>
         <button class="btn" id="accuseButton">האשם חשוד</button>
       </div>
@@ -278,7 +310,8 @@
             <li>בדוק את חלון הראיות ופתח כל כרטיס.</li>
             <li>קרא כל עדות חשוד ושמור על אי התאמות.</li>
             <li>השתמש ברמזים במידת הצורך, אך הם מורידים ניקוד.</li>
-            <li>היה מדויק: טעות מורידה חיים.</li>
+            <li>לכל תיק מוקצב זמן לפי רמת הקושי: קל = 2 דקות, בינוני = 3 דקות, קשה = 4 דקות.</li>
+            <li>היה מדויק: טעות מורידה חיים, וגם הזמן עובר.</li>
           </ul>
         </div>
         <footer>
@@ -296,6 +329,35 @@
           <p>בחר את החשוד שנראה לך הכי חשוד. ברגע תאשימו, תוקפא התיק ותקבלו תוצאה.</p>
         </div>
         <footer id="accuseOptions"></footer>
+      </div>
+    </div>
+
+    <div id="timerToast" class="timer-toast" aria-live="polite">נותרו 02:00</div>
+
+    <div id="interrogationModal" class="modal">
+      <div class="modal-card">
+        <header>
+          <h2>חדר חקירות</h2>
+        </header>
+        <div class="modal-body">
+          <div class="interrogate-layout">
+            <div>
+              <label for="interrogationSuspectSelect" style="display:block; margin-bottom: 8px; color: var(--text);">בחר חשוד</label>
+              <select id="interrogationSuspectSelect" style="width: 100%; background: rgba(255,255,255,.04); color: var(--text); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 12px 14px;">
+              </select>
+            </div>
+            <div>
+              <div class="question-list" id="interrogationQuestions"></div>
+            </div>
+          </div>
+          <div class="question-answer" id="interrogationResponse" style="margin-top: 20px;">
+            <strong>תשובה</strong>
+            <span>בחר שאלה כדי לראות את התגובה של החשוד.</span>
+          </div>
+        </div>
+        <footer>
+          <button class="btn btn-secondary" id="closeInterrogation" type="button">סגור</button>
+        </footer>
       </div>
     </div>
 
@@ -618,6 +680,8 @@
     let currentPanel = 'evidence';
     let selectedDifficulty = 'כל';
     let selectedCaseId = '';
+    let countdownSeconds = 0;
+    let countdownInterval = null;
 
     const introScreen = document.getElementById('introScreen');
     const gameScreen = document.getElementById('gameScreen');
@@ -625,6 +689,7 @@
     const setupModal = document.getElementById('setupModal');
     const howModal = document.getElementById('howModal');
     const accuseModal = document.getElementById('accuseModal');
+    const interrogationModal = document.getElementById('interrogationModal');
     const startButton = document.getElementById('startButton');
     const howButton = document.getElementById('howButton');
     const closeHow = document.getElementById('closeHow');
@@ -637,7 +702,9 @@
     const caseSuspectsCount = document.getElementById('caseSuspectsCount');
     const scoreValue = document.getElementById('scoreValue');
     const livesValue = document.getElementById('livesValue');
+    const timerValue = document.getElementById('timerValue');
     const hintCount = document.getElementById('hintCount');
+    const timerToast = document.getElementById('timerToast');
     const evidencePanel = document.getElementById('evidencePanel');
     const suspectsPanel = document.getElementById('suspectsPanel');
     const timelinePanel = document.getElementById('timelinePanel');
@@ -654,6 +721,10 @@
     const resultConclusion = document.getElementById('resultConclusion');
     const nextRoundButton = document.getElementById('nextRoundButton');
     const accuseOptions = document.getElementById('accuseOptions');
+    const interrogationSuspectSelect = document.getElementById('interrogationSuspectSelect');
+    const interrogationQuestions = document.getElementById('interrogationQuestions');
+    const interrogationResponse = document.getElementById('interrogationResponse');
+    const closeInterrogation = document.getElementById('closeInterrogation');
     const difficultyOptions = document.getElementById('difficultyOptions');
     const casePicker = document.getElementById('casePicker');
 
@@ -682,6 +753,60 @@
 
     function getCurrentCase() {
       return activeCases.find(item => item.id === currentCaseId) || activeCases[0] || null;
+    }
+
+    function getDifficultyTimeLimit(difficulty) {
+      if (difficulty === 'קל') return 120;
+      if (difficulty === 'בינוני') return 180;
+      if (difficulty === 'קשה') return 240;
+      return 180;
+    }
+
+    function formatTime(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function showTimerToast(message) {
+      timerToast.textContent = message;
+      timerToast.classList.add('visible');
+      clearTimeout(showTimerToast.timeoutId);
+      showTimerToast.timeoutId = setTimeout(() => {
+        timerToast.classList.remove('visible');
+      }, 1400);
+    }
+
+    function updateTimerDisplay() {
+      timerValue.textContent = formatTime(countdownSeconds);
+    }
+
+    function stopTimer() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+    }
+
+    function startTimerForCase(caseData) {
+      stopTimer();
+      countdownSeconds = getDifficultyTimeLimit(caseData.difficulty);
+      updateTimerDisplay();
+
+      countdownInterval = setInterval(() => {
+        if (countdownSeconds <= 0) {
+          stopTimer();
+          handleTimeExpired();
+          return;
+        }
+
+        countdownSeconds -= 1;
+        updateTimerDisplay();
+
+        if (countdownSeconds > 0 && countdownSeconds % 60 === 0) {
+          showTimerToast(`נותרו ${formatTime(countdownSeconds)} לפתור את החקירה`);
+        }
+      }, 1000);
     }
 
     function renderDifficultyOptions() {
@@ -739,6 +864,7 @@
       reviewedItems.clear();
       currentPanel = 'evidence';
       showScreen(gameScreen);
+      startTimerForCase(initialCase);
       renderCurrentCase();
     }
 
@@ -855,6 +981,19 @@
       `;
     }
 
+    function handleTimeExpired() {
+      stopTimer();
+      timerToast.classList.remove('visible');
+      score = Math.max(0, score - 60);
+      lives = Math.max(0, lives - 1);
+      showResult({
+        solved: false,
+        chosen: getCurrentCase().suspects[0],
+        correct: getCurrentCase().suspects.find(s => s.truthful === false),
+        timedOut: true
+      });
+    }
+
     function updateAccuseOptions() {
       accuseOptions.innerHTML = '';
       const currentCase = getCurrentCase();
@@ -866,6 +1005,107 @@
         button.addEventListener('click', () => accuseSuspect(suspect.id));
         accuseOptions.appendChild(button);
       });
+    }
+
+    function getQuestionBank(suspect) {
+      const currentCase = getCurrentCase();
+      const timeline = currentCase?.timeline || [];
+      const firstTime = timeline[0]?.time || 'שעת האירוע';
+      const lastTime = timeline[timeline.length - 1]?.time || 'בסוף האירוע';
+
+      return [
+        { id: 'location', label: 'איפה היית בזמן האירוע?' },
+        { id: 'withWhom', label: 'מי היה איתך?' },
+        { id: 'whatHeard', label: 'מה שמעת או ראית?' },
+        { id: 'alibi', label: 'האם יש לך אליבי?' },
+        { id: 'whyThere', label: 'למה היית שם?' }
+      ].map(item => {
+        let answer = '';
+
+        if (item.id === 'location') {
+          if (suspect.truthful) {
+            answer = `הייתי ${suspect.role.toLowerCase()} באזור העבודה/המיקום שלי כל הזמן. לא יצאתי מהמקום עד ${lastTime}, ואני כבר תיארתי את השהות שלי לשוטרים. אם היו עוברים ליד, הייתי רואה אותם, ולכן אני בטוח שזה לא היה אני.`;
+          } else {
+            answer = `הייתי ליד האזור, אבל לא נשארתי שם לאורך כל הזמן. ${suspect.statement} זה לא היה מיקום קבוע, וכשאני משחזר את הדברים, אני פחות בטוח לגבי כמה זמן בדיוק נותרתי שם.`;
+          }
+        }
+
+        if (item.id === 'withWhom') {
+          if (suspect.truthful) {
+            answer = `הייתי לבד ברוב הזמן, או שהיה לידיי מישהו שאני מכיר. ${suspect.notes || 'הייתה שם דמות מוכרת, אבל לא היתה לי סיבה להסתירה.'} אני זוכר מי היה לידיי ומה היה סביבי בשעת ${firstTime}, וזה תואם את התפקיד שלי באותו היום.`;
+          } else {
+            answer = `היה לי קשה לזכור מי בדיוק היה איתי. ${suspect.notes || 'הייתי קרוב למישהו, אבל לא זוכר את שמו בדיוק.'} חלק מהסיפור שלי נראים לי עכשיו פחות ברורים, ואני מנסה להיזכר מה קרה.`;
+          }
+        }
+
+        if (item.id === 'whatHeard') {
+          if (suspect.truthful) {
+            answer = `שמעתי רעש/דבר מסוים, אבל הבנתי מה קורה רק מאוחר יותר. ${suspect.statement} זה היה נקודתי והכיוון של הקול עזר לי להבין איפה האירוע התרחש, ולכן אני זוכר את זה היטב.`;
+          } else {
+            answer = `אני שמעתי משהו, אבל לא הייתי בטוח אם זה היה ברקע או לידיי. ${suspect.statement} זה קצת מעורפל, כי לא הקדשתי תשומת לב רצינית מספיק לרגע הזה.`;
+          }
+        }
+
+        if (item.id === 'alibi') {
+          if (suspect.truthful) {
+            answer = `האליבי שלי יציב: הייתי ${suspect.role.toLowerCase()} עד ${lastTime}, ואני יכול לתאר בדיוק מה עשיתי. יש לי סיבה טובה להיות במקום, ולא היה לי שום עניין לעזוב אותו ברגע הקריטי.`;
+          } else {
+            answer = `האליבי שלי דליל. אני לא הייתי במקום שבו טענתי, וגם לא כל כך יכולתי להגן על עצמי בזמן. ${suspect.statement} זה לא היה תיאור הוגן של מה באמת היה.`;
+          }
+        }
+
+        if (item.id === 'whyThere') {
+          if (suspect.truthful) {
+            answer = `הייתי שם כי זה היה התפקיד שלי כ${suspect.role.toLowerCase()}. אני נדרש להיות באזור הזה, וזה חלק מהשגרה שלי. זה היה לא סתם מקום; היה לי תפקיד/עבודה/משימה שנשארה שם עד ${lastTime}.`;
+          } else {
+            answer = `הייתי שם מסיבות לא מדויקות, ואני לא אוהב להיסחף לתשובה שוטפת. ${suspect.statement} זה היה קטע קצר, ואני לא רוצה לחרוג מהסיפור שאני מספר.`;
+          }
+        }
+
+        return { ...item, answer };
+      });
+    }
+
+    function renderInterrogationOptions() {
+      const currentCase = getCurrentCase();
+      if (!currentCase) return;
+
+      interrogationSuspectSelect.innerHTML = '';
+      currentCase.suspects.forEach(suspect => {
+        const option = document.createElement('option');
+        option.value = suspect.id;
+        option.textContent = suspect.name;
+        interrogationSuspectSelect.appendChild(option);
+      });
+
+      const selectedSuspect = currentCase.suspects[0];
+      renderQuestionButtons(selectedSuspect.id);
+    }
+
+    function renderQuestionButtons(suspectId) {
+      const currentCase = getCurrentCase();
+      const suspect = currentCase.suspects.find(item => item.id === suspectId) || currentCase.suspects[0];
+      interrogationQuestions.innerHTML = '';
+      getQuestionBank(suspect).forEach(question => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'question-btn';
+        button.textContent = question.label;
+        button.addEventListener('click', () => {
+          interrogationResponse.innerHTML = `
+            <strong>שאלה: ${question.label}</strong>
+            <div>${question.answer}</div>
+          `;
+        });
+        interrogationQuestions.appendChild(button);
+      });
+    }
+
+    function openInterrogationRoom() {
+      renderInterrogationOptions();
+      interrogationSuspectSelect.value = getCurrentCase().suspects[0].id;
+      interrogationResponse.innerHTML = '<strong>תשובה</strong><span>בחר שאלה כדי לראות את התגובה של החשוד.</span>';
+      openModal(interrogationModal);
     }
 
     function useHint() {
@@ -883,6 +1123,7 @@
 
     function accuseSuspect(suspectId) {
       closeModal(accuseModal);
+      stopTimer();
       const currentCase = getCurrentCase();
       const chosen = currentCase.suspects.find(s => s.id === suspectId);
       if (!chosen) return;
@@ -897,12 +1138,17 @@
       showResult({ solved, chosen, correct });
     }
 
-    function showResult({ solved, chosen, correct }) {
+    function showResult({ solved, chosen, correct, timedOut = false }) {
       resultScreen.classList.add('visible');
-      resultTitle.textContent = solved ? 'פתרת את התיק!' : 'התחזית לא מדויקת.';
-      resultDescription.textContent = solved ?
-        `בחרת ב${chosen.name} והצלחת לחשוף את השקרן.` :
-        `בחרת ב${chosen.name}. התברר שהמציאות הייתה אחרת.`;
+      if (timedOut) {
+        resultTitle.textContent = 'נגמר הזמן!';
+        resultDescription.textContent = 'לא הספקת לסיים את החקירה בזמן. התיק נותר פתוח.';
+      } else {
+        resultTitle.textContent = solved ? 'פתרת את התיק!' : 'התחזית לא מדויקת.';
+        resultDescription.textContent = solved ?
+          `בחרת ב${chosen.name} והצלחת לחשוף את השקרן.` :
+          `בחרת ב${chosen.name}. התברר שהמצ realities הייתה אחרת.`;
+      }
       resultScore.textContent = score;
       resultLives.textContent = lives;
       resultCases.textContent = `1/1`;
@@ -918,6 +1164,8 @@
         resultTitle.textContent = 'המשחק נגמר';
         resultDescription.textContent = 'החיים שלך נגמרו. בחר רמה ותיק חדשים כדי לנסות שוב.';
         nextRoundButton.textContent = 'בחירת תיקים';
+      } else if (timedOut) {
+        nextRoundButton.textContent = 'נסה שוב';
       } else if (!solved) {
         nextRoundButton.textContent = 'נסה שוב';
       } else {
@@ -946,15 +1194,20 @@
     });
     howButton.addEventListener('click', () => openModal(howModal));
     closeHow.addEventListener('click', () => closeModal(howModal));
+    closeInterrogation.addEventListener('click', () => closeModal(interrogationModal));
+    interrogationSuspectSelect.addEventListener('change', e => renderQuestionButtons(e.target.value));
     hintButton.addEventListener('click', useHint);
     reviewButton.addEventListener('click', () => {
       const currentCase = getCurrentCase();
       setDetailContent('סיכום תיק', currentCase.summaryClues.join(' • '), 'סקירה');
     });
     accuseButton.addEventListener('click', () => openModal(accuseModal));
+    document.getElementById('interrogateButton')?.addEventListener('click', openInterrogationRoom);
     nextRoundButton.addEventListener('click', () => {
       resultScreen.classList.add('hidden');
       resultScreen.classList.remove('visible');
+      timerToast.classList.remove('visible');
+      stopTimer();
       showScreen(introScreen);
       renderDifficultyOptions();
       renderCasePicker();
@@ -964,6 +1217,7 @@
       if (event.target === setupModal) closeModal(setupModal);
       if (event.target === howModal) closeModal(howModal);
       if (event.target === accuseModal) closeModal(accuseModal);
+      if (event.target === interrogationModal) closeModal(interrogationModal);
     });
 
     renderDifficultyOptions();
