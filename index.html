@@ -29,6 +29,21 @@
 
     .screen { width: min(1180px, 100%); max-width: 1180px; margin: auto; overflow: hidden; }
     .screen.hidden { display: none; }
+    .music-toggle {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 30;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(15,17,24,.78);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      font-size: 1.2rem;
+      backdrop-filter: blur(10px);
+    }
     .hero { padding: 56px 44px 40px; text-align: center; }
     .hero h1 { margin: 0; font-size: clamp(3rem, 4vw, 4.8rem); letter-spacing: -0.05em; line-height: 0.95; }
     .hero p { margin: 22px auto 0; max-width: 760px; color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
@@ -177,6 +192,9 @@
   </style>
 </head>
 <body>
+  <audio id="bgMusic" loop preload="auto" src="Tension Suspense Cinematic NoCopyright Background Music 1 Hour Mix by Soundridemusic 2025.mp3"></audio>
+  <button id="musicToggle" class="music-toggle" aria-label="Mute background music" title="הפעל/כבה מוזיקת רקע">🔊</button>
+
   <div class="app-shell">
     <section id="introScreen" class="screen panel">
       <div class="hero">
@@ -721,6 +739,8 @@
     const resultConclusion = document.getElementById('resultConclusion');
     const nextRoundButton = document.getElementById('nextRoundButton');
     const accuseOptions = document.getElementById('accuseOptions');
+    const musicToggle = document.getElementById('musicToggle');
+    const bgMusic = document.getElementById('bgMusic');
     const interrogationSuspectSelect = document.getElementById('interrogationSuspectSelect');
     const interrogationQuestions = document.getElementById('interrogationQuestions');
     const interrogationResponse = document.getElementById('interrogationResponse');
@@ -1174,7 +1194,30 @@
       resultScreen.classList.remove('hidden');
     }
 
+    function startBackgroundMusic() {
+      if (!bgMusic) return;
+      bgMusic.volume = 0.35;
+      bgMusic.muted = false;
+      const playPromise = bgMusic.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          bgMusic.muted = true;
+        });
+      }
+    }
+
+    function toggleBackgroundMusic() {
+      if (!bgMusic) return;
+      bgMusic.muted = !bgMusic.muted;
+      musicToggle.textContent = bgMusic.muted ? '🔇' : '🔊';
+      musicToggle.setAttribute('aria-label', bgMusic.muted ? 'Play background music' : 'Mute background music');
+      if (!bgMusic.muted) {
+        startBackgroundMusic();
+      }
+    }
+
     startButton.addEventListener('click', () => {
+      startBackgroundMusic();
       renderDifficultyOptions();
       renderCasePicker();
       openModal(setupModal);
@@ -1212,6 +1255,9 @@
       renderDifficultyOptions();
       renderCasePicker();
     });
+
+    musicToggle.addEventListener('click', toggleBackgroundMusic);
+    document.addEventListener('pointerdown', startBackgroundMusic, { once: true });
 
     window.addEventListener('click', event => {
       if (event.target === setupModal) closeModal(setupModal);
