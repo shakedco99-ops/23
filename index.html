@@ -75,6 +75,8 @@
     .status strong { display: block; font-size: 1.3rem; }
     .status span { color: var(--muted); font-size: .9rem; }
     .status.timer-status { border: 1px solid rgba(255,159,79,.38); background: rgba(255,159,79,.08); }
+    .status.rank-status { border: 1px solid rgba(88,213,255,.32); background: rgba(88,213,255,.08); min-width: 170px; }
+    .status.rank-status { border: 1px solid rgba(88,213,255,.35); background: rgba(88,213,255,.08); min-width: 180px; }
     .timer-toast {
       position: fixed;
       left: 50%;
@@ -227,6 +229,10 @@
           <div class="status timer-status">
             <strong id="timerValue">02:00</strong>
             <span>זמן נותר</span>
+          </div>
+          <div class="status rank-status">
+            <strong id="rankValue">בלש מתחיל</strong>
+            <span id="rankRange">0-500</span>
           </div>
         </div>
 
@@ -689,6 +695,8 @@
       }
     ];
 
+    const STORAGE_KEY = 'detective_case_files_progress';
+
     let currentCaseId = '';
     let activeCases = [];
     let score = 0;
@@ -700,6 +708,17 @@
     let selectedCaseId = '';
     let countdownSeconds = 0;
     let countdownInterval = null;
+    let playerProgress = { totalScore: 0 };
+
+    const rankLevels = [
+      { name: 'בלש מתחיל', min: 0, max: 500 },
+      { name: 'בלש עוזר', min: 501, max: 1200 },
+      { name: 'בלש חוקר', min: 1201, max: 2200 },
+      { name: 'חוקר מחוזי', min: 2201, max: 3600 },
+      { name: 'חוקר בכיר', min: 3601, max: 5400 },
+      { name: 'מפקד חקירות', min: 5401, max: 8000 },
+      { name: 'אמן החקירה', min: 8001, max: Infinity }
+    ];
 
     const introScreen = document.getElementById('introScreen');
     const gameScreen = document.getElementById('gameScreen');
@@ -722,6 +741,8 @@
     const livesValue = document.getElementById('livesValue');
     const timerValue = document.getElementById('timerValue');
     const hintCount = document.getElementById('hintCount');
+    const rankValue = document.getElementById('rankValue');
+    const rankRange = document.getElementById('rankRange');
     const timerToast = document.getElementById('timerToast');
     const evidencePanel = document.getElementById('evidencePanel');
     const suspectsPanel = document.getElementById('suspectsPanel');
@@ -773,6 +794,29 @@
 
     function getCurrentCase() {
       return activeCases.find(item => item.id === currentCaseId) || activeCases[0] || null;
+    }
+
+    function loadPlayerProgress() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        return { totalScore: Number(saved.totalScore) || 0 };
+      } catch (error) {
+        return { totalScore: 0 };
+      }
+    }
+
+    function savePlayerProgress() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalScore: playerProgress.totalScore }));
+    }
+
+    function getRankInfo(points) {
+      return rankLevels.find(level => points >= level.min && points <= level.max) || rankLevels[rankLevels.length - 1];
+    }
+
+    function updateRankDisplay() {
+      const currentRank = getRankInfo(playerProgress.totalScore);
+      rankValue.textContent = currentRank.name;
+      rankRange.textContent = currentRank.max === Infinity ? `${currentRank.min}+` : `${currentRank.min}-${currentRank.max}`;
     }
 
     function getDifficultyTimeLimit(difficulty) {
@@ -885,6 +929,7 @@
       currentPanel = 'evidence';
       showScreen(gameScreen);
       startTimerForCase(initialCase);
+      updateRankDisplay();
       renderCurrentCase();
     }
 
@@ -913,6 +958,7 @@
       scoreValue.textContent = score;
       livesValue.textContent = lives;
       hintCount.textContent = hints;
+      updateRankDisplay();
       renderTabs();
       renderPanel('evidence');
       renderEvidence();
@@ -999,19 +1045,6 @@
           ${extra ? `<p><strong>פתרון לפי המשטרה:</strong> ${extra}</p>` : ''}
         </div>
       `;
-    }
-
-    function handleTimeExpired() {
-      stopTimer();
-      timerToast.classList.remove('visible');
-      score = Math.max(0, score - 60);
-      lives = Math.max(0, lives - 1);
-      showResult({
-        solved: false,
-        chosen: getCurrentCase().suspects[0],
-        correct: getCurrentCase().suspects.find(s => s.truthful === false),
-        timedOut: true
-      });
     }
 
     function updateAccuseOptions() {
@@ -1135,9 +1168,13 @@
       const hint = currentCase.hints.shift();
       if (!hint) return;
       hints -= 1;
-      score = Math.max(0, score - 20);
+      const hintPenalty = 20;
+      score = Math.max(0, score - hintPenalty);
+      playerProgress.totalScore = Math.max(0, playerProgress.totalScore - hintPenalty);
+      savePlayerProgress();
       scoreValue.textContent = score;
       hintCount.textContent = hints;
+      updateRankDisplay();
       setDetailContent('רמז', hint, 'רמז');
     }
 
@@ -1150,12 +1187,35 @@
       const correct = currentCase.suspects.find(s => s.truthful === false);
       const solved = chosen.id === correct.id;
       if (solved) {
-        score += 120 + (reviewedItems.size * 4);
+        const reward = 120 + (reviewedItems.size * 4);
+        score += reward;
+        playerProgress.totalScore += reward;
       } else {
         lives -= 1;
-        score = Math.max(0, score - 40);
+        const penalty = 40;
+        score = Math.max(0, score - penalty);
+        playerProgress.totalScore = Math.max(0, playerProgress.totalScore - penalty);
       }
+      savePlayerProgress();
+      scoreValue.textContent = score;
+      updateRankDisplay();
       showResult({ solved, chosen, correct });
+    }
+
+    function handleTimeExpired() {
+      stopTimer();
+      timerToast.classList.remove('visible');
+      const penalty = 60;
+      score = Math.max(0, score - penalty);
+      playerProgress.totalScore = Math.max(0, playerProgress.totalScore - penalty);
+      savePlayerProgress();
+      updateRankDisplay();
+      showResult({
+        solved: false,
+        chosen: getCurrentCase().suspects[0],
+        correct: getCurrentCase().suspects.find(s => s.truthful === false),
+        timedOut: true
+      });
     }
 
     function showResult({ solved, chosen, correct, timedOut = false }) {
@@ -1169,10 +1229,12 @@
           `בחרת ב${chosen.name} והצלחת לחשוף את השקרן.` :
           `בחרת ב${chosen.name}. התברר שהמצ realities הייתה אחרת.`;
       }
-      resultScore.textContent = score;
+      resultScore.textContent = playerProgress.totalScore;
       resultLives.textContent = lives;
       resultCases.textContent = `1/1`;
+      const currentRank = getRankInfo(playerProgress.totalScore);
       resultConclusion.innerHTML = `
+        <p><strong>דרגה עכשיו:</strong> ${currentRank.name} (${currentRank.max === Infinity ? `${currentRank.min}+` : `${currentRank.min}-${currentRank.max}`})</p>
         <p><strong>הסבר המתח:</strong> ${correct.notes}</p>
         <ul>
           <li>הצהרת השקרן: ${correct.statement}</li>
@@ -1266,6 +1328,8 @@
       if (event.target === interrogationModal) closeModal(interrogationModal);
     });
 
+    playerProgress = loadPlayerProgress();
+    updateRankDisplay();
     renderDifficultyOptions();
     renderCasePicker();
     renderTabs();
