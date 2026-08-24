@@ -75,7 +75,30 @@
     .status strong { display: block; font-size: 1.3rem; }
     .status span { color: var(--muted); font-size: .9rem; }
     .status.timer-status { border: 1px solid rgba(255,159,79,.38); background: rgba(255,159,79,.08); }
-    .status.rank-status { border: 1px solid rgba(88,213,255,.35); background: rgba(88,213,255,.08); min-width: 170px; }
+    .status.rank-status { border: 1px solid rgba(88,213,255,.35); background: rgba(88,213,255,.08); min-width: 170px; cursor: pointer; }
+    .rank-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .rank-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.06);
+      color: var(--text);
+    }
+    .rank-item.current {
+      border-color: rgba(88,213,255,.35);
+      background: rgba(88,213,255,.08);
+    }
+    .rank-item small {
+      color: var(--muted);
+    }
     .confetti-layer {
       position: fixed;
       inset: 0;
@@ -250,7 +273,7 @@
             <strong id="timerValue">02:00</strong>
             <span>זמן נותר</span>
           </div>
-          <div class="status rank-status">
+          <div class="status rank-status" id="rankStatusCard" aria-label="רשימת דרגות" title="לחץ כדי לראות את כל הדרגות">
             <strong id="rankValue">בלש מתחיל</strong>
             <span id="rankRange">0-500</span>
           </div>
@@ -285,10 +308,10 @@
             </div>
             <div class="metric">
               <div>
-                <strong id="rankValue">בלש מתחיל</strong>
-                <em id="rankRange">0-500</em>
+                <strong>דרגה נוכחית</strong>
+                <em>רמת הביצוע של השחקן</em>
               </div>
-              <div class="chip">דרגה</div>
+              <div class="chip" id="rankBadgeChip">בלש מתחיל</div>
             </div>
           </div>
         </section>
@@ -384,6 +407,21 @@
     </div>
 
     <div id="timerToast" class="timer-toast" aria-live="polite">נותרו 02:00</div>
+
+    <div id="rankModal" class="modal">
+      <div class="modal-card">
+        <header>
+          <h2>רמות אפשריות</h2>
+        </header>
+        <div class="modal-body">
+          <p>רשימת כל הדרגות האפשריות במשחק. כאן אפשר רק לצפות, לא לשנות את הדירוג הנוכחי.</p>
+          <div class="rank-list" id="rankList"></div>
+        </div>
+        <footer>
+          <button class="btn btn-secondary" id="closeRankModal" type="button">סגור</button>
+        </footer>
+      </div>
+    </div>
 
     <div id="interrogationModal" class="modal">
       <div class="modal-card">
@@ -753,6 +791,11 @@
     const setupModal = document.getElementById('setupModal');
     const howModal = document.getElementById('howModal');
     const accuseModal = document.getElementById('accuseModal');
+    const rankModal = document.getElementById('rankModal');
+    const closeRankModal = document.getElementById('closeRankModal');
+    const rankList = document.getElementById('rankList');
+    const rankStatusCard = document.getElementById('rankStatusCard');
+    const rankBadgeChip = document.getElementById('rankBadgeChip');
     const interrogationModal = document.getElementById('interrogationModal');
     const startButton = document.getElementById('startButton');
     const howButton = document.getElementById('howButton');
@@ -844,6 +887,30 @@
       const currentRank = getRankInfo(playerProgress.totalScore);
       rankValue.textContent = currentRank.name;
       rankRange.textContent = currentRank.max === Infinity ? `${currentRank.min}+` : `${currentRank.min}-${currentRank.max}`;
+      if (rankBadgeChip) {
+        rankBadgeChip.textContent = currentRank.name;
+      }
+    }
+
+    function openRankOverview() {
+      const currentRank = getRankInfo(playerProgress.totalScore);
+      rankList.innerHTML = '';
+
+      rankLevels.forEach(level => {
+        const item = document.createElement('div');
+        item.className = `rank-item ${level.name === currentRank.name ? 'current' : ''}`;
+        const rangeText = level.max === Infinity ? `${level.min}+` : `${level.min}-${level.max}`;
+        item.innerHTML = `
+          <div>
+            <strong>${level.name}</strong>
+            <small>${rangeText}</small>
+          </div>
+          ${level.name === currentRank.name ? '<span>נוכחי</span>' : '<span>זמין</span>'}
+        `;
+        rankList.appendChild(item);
+      });
+
+      openModal(rankModal);
     }
 
     function getDifficultyTimeLimit(difficulty) {
@@ -1353,6 +1420,8 @@
     });
     howButton.addEventListener('click', () => openModal(howModal));
     closeHow.addEventListener('click', () => closeModal(howModal));
+    closeRankModal.addEventListener('click', () => closeModal(rankModal));
+    rankStatusCard.addEventListener('click', openRankOverview);
     closeInterrogation.addEventListener('click', () => closeModal(interrogationModal));
     interrogationSuspectSelect.addEventListener('change', e => renderQuestionButtons(e.target.value));
     hintButton.addEventListener('click', useHint);
@@ -1379,6 +1448,7 @@
       if (event.target === setupModal) closeModal(setupModal);
       if (event.target === howModal) closeModal(howModal);
       if (event.target === accuseModal) closeModal(accuseModal);
+      if (event.target === rankModal) closeModal(rankModal);
       if (event.target === interrogationModal) closeModal(interrogationModal);
     });
 
