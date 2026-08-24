@@ -75,8 +75,27 @@
     .status strong { display: block; font-size: 1.3rem; }
     .status span { color: var(--muted); font-size: .9rem; }
     .status.timer-status { border: 1px solid rgba(255,159,79,.38); background: rgba(255,159,79,.08); }
-    .status.rank-status { border: 1px solid rgba(88,213,255,.32); background: rgba(88,213,255,.08); min-width: 170px; }
-    .status.rank-status { border: 1px solid rgba(88,213,255,.35); background: rgba(88,213,255,.08); min-width: 180px; }
+    .status.rank-status { border: 1px solid rgba(88,213,255,.35); background: rgba(88,213,255,.08); min-width: 170px; }
+    .confetti-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 80;
+    }
+    .confetti-piece {
+      position: absolute;
+      top: -20px;
+      width: 10px;
+      height: 18px;
+      opacity: .9;
+      border-radius: 3px;
+      animation: confetti-fall 1.8s ease-in forwards;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+      100% { transform: translate3d(var(--dx), 100vh, 0) rotate(var(--rot)); opacity: 0; }
+    }
     .timer-toast {
       position: fixed;
       left: 50%;
@@ -196,6 +215,7 @@
 <body>
   <audio id="bgMusic" loop preload="auto" src="Tension Suspense Cinematic NoCopyright Background Music 1 Hour Mix by Soundridemusic 2025.mp3"></audio>
   <button id="musicToggle" class="music-toggle" aria-label="Mute background music" title="הפעל/כבה מוזיקת רקע">🔊</button>
+  <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
 
   <div class="app-shell">
     <section id="introScreen" class="screen panel">
@@ -262,6 +282,13 @@
                 <strong id="caseSummaryLabel">מטרה מרכזית</strong>
                 <em id="caseSummaryText">להבין מי שיקר</em>
               </div>
+            </div>
+            <div class="metric">
+              <div>
+                <strong id="rankValue">בלש מתחיל</strong>
+                <em id="rankRange">0-500</em>
+              </div>
+              <div class="chip">דרגה</div>
             </div>
           </div>
         </section>
@@ -1218,8 +1245,35 @@
       });
     }
 
+    function launchConfetti() {
+      const container = document.getElementById('confettiLayer');
+      if (!container) return;
+
+      const colors = ['#58d5ff', '#ff9f4f', '#6dd6a6', '#ffc857', '#ff5f6f', '#b39ddb'];
+      const pieces = 72;
+
+      for (let i = 0; i < pieces; i++) {
+        const piece = document.createElement('span');
+        piece.className = 'confetti-piece';
+        const left = Math.random() * window.innerWidth;
+        const dx = (Math.random() - 0.5) * 500;
+        const rot = `${(Math.random() * 720 - 360).toFixed(2)}deg`;
+        piece.style.left = `${left}px`;
+        piece.style.background = colors[i % colors.length];
+        piece.style.setProperty('--dx', `${dx}px`);
+        piece.style.setProperty('--rot', rot);
+        piece.style.transform = `scale(${0.8 + Math.random() * 0.7})`;
+        container.appendChild(piece);
+
+        setTimeout(() => piece.remove(), 1900);
+      }
+    }
+
     function showResult({ solved, chosen, correct, timedOut = false }) {
       resultScreen.classList.add('visible');
+      if (solved) {
+        launchConfetti();
+      }
       if (timedOut) {
         resultTitle.textContent = 'נגמר הזמן!';
         resultDescription.textContent = 'לא הספקת לסיים את החקירה בזמן. התיק נותר פתוח.';
